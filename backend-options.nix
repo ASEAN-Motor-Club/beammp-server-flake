@@ -130,7 +130,7 @@ with lib; let
     };
     cpuAffinity = mkOption {
       type = types.str;
-      default = "4 5 6 7";
+      default = "4 5";
       description = "CPU cores to pin to (must NOT overlap Motor Town's 0-3)";
     };
     memoryMax = mkOption {
