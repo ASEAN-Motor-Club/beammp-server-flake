@@ -43,10 +43,26 @@ with lib; let
     MaxPlayers = ${toString cfg.maxPlayers}
     MaxCars = ${toString cfg.maxCars}
     Map = "${cfg.map}"
-    Private = ${if cfg.isPrivate then "true" else "false"}
-    AllowGuests = ${if cfg.allowGuests then "true" else "false"}
-    LogChat = ${if cfg.logChat then "true" else "false"}
-    Debug = ${if cfg.debug then "true" else "false"}
+    Private = ${
+      if cfg.isPrivate
+      then "true"
+      else "false"
+    }
+    AllowGuests = ${
+      if cfg.allowGuests
+      then "true"
+      else "false"
+    }
+    LogChat = ${
+      if cfg.logChat
+      then "true"
+      else "false"
+    }
+    Debug = ${
+      if cfg.debug
+      then "true"
+      else "false"
+    }
     IP = "0.0.0.0"
     InformationPacket = true
     ResourceFolder = "Resources"
@@ -84,10 +100,22 @@ in {
           BEAMMP_MAX_PLAYERS = toString cfg.maxPlayers;
           BEAMMP_MAX_CARS = toString cfg.maxCars;
           BEAMMP_MAP = cfg.map;
-          BEAMMP_PRIVATE = if cfg.isPrivate then "true" else "false";
-          BEAMMP_ALLOW_GUESTS = if cfg.allowGuests then "true" else "false";
-          BEAMMP_LOG_CHAT = if cfg.logChat then "true" else "false";
-          BEAMMP_DEBUG = if cfg.debug then "true" else "false";
+          BEAMMP_PRIVATE =
+            if cfg.isPrivate
+            then "true"
+            else "false";
+          BEAMMP_ALLOW_GUESTS =
+            if cfg.allowGuests
+            then "true"
+            else "false";
+          BEAMMP_LOG_CHAT =
+            if cfg.logChat
+            then "true"
+            else "false";
+          BEAMMP_DEBUG =
+            if cfg.debug
+            then "true"
+            else "false";
           BEAMMP_DESCRIPTION = cfg.description;
           BEAMMP_TAGS = cfg.tags;
           BEAMMP_RESOURCE_FOLDER = "Resources";
