@@ -20,7 +20,7 @@ with lib; let
     version = cfg.serverVersion;
     src = pkgs.fetchurl {
       url = "https://github.com/BeamMP/BeamMP-Server/releases/download/${cfg.serverVersion}/BeamMP-Server.debian.12.x86_64";
-      hash = "sha256-0ca8f3e2ea29dacc311d7448bfbabb8d49b3febd3db32687f336b18c3b88d935";
+      sha256 = "0ca8f3e2ea29dacc311d7448bfbabb8d49b3febd3db32687f336b18c3b88d935";
     };
     nativeBuildInputs = [pkgs.autoPatchelfHook];
     buildInputs = [pkgs.lua5_3 pkgs.curl pkgs.stdenv.cc.cc.lib];
@@ -30,6 +30,7 @@ with lib; let
       cp $src $out/bin/BeamMP-Server
       chmod +x $out/bin/BeamMP-Server
     '';
+    meta.mainProgram = "BeamMP-Server";
   };
 
   serverConfigFile = pkgs.writeText "ServerConfig.toml" ''
