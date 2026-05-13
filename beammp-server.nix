@@ -7,6 +7,24 @@
 with lib; let
   cfg = config.services.beammp-server;
 
+  careermp = import ./careermp.nix {
+    inherit pkgs lib;
+    version = cfg.careerMPVersion;
+  };
+
+  userServerOverrides = cfg.careerMPConfig.server or {};
+  userClientOverrides = cfg.careerMPConfig.client or {};
+
+  mergedConfig = {
+    server = lib.recursiveUpdate (lib.recursiveUpdate careermp.defaultConfig.server userServerOverrides) {
+      autoUpdate = false;
+      autoExit = false;
+    };
+    client = lib.recursiveUpdate careermp.defaultConfig.client userClientOverrides;
+  };
+
+  careermpConfigFile = pkgs.writeText "careermp-config.json" (builtins.toJSON mergedConfig);
+
   discordNotify = pkgs.writeShellScript "discord-notify" ''
     WEBHOOK_URL="$1"
     MESSAGE="$2"
@@ -77,6 +95,17 @@ in {
   };
 
   config = mkIf cfg.enable {
+    assertions = lib.optionals cfg.enableCareerMP [
+      {
+        assertion = cfg.maxCars >= 100;
+        message = "CareerMP requires maxCars >= 100, but maxCars is ${toString cfg.maxCars}";
+      }
+      {
+        assertion = cfg.map == "/levels/west_coast_usa/info.json";
+        message = "CareerMP requires map = /levels/west_coast_usa/info.json, but map is ${cfg.map}";
+      }
+    ];
+
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = [cfg.port];
       allowedUDPPorts = [cfg.port];
@@ -93,6 +122,7 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["network.target"];
       description = "BeamMP Dedicated Server (BeamNG.drive)";
+      path = lib.optionals cfg.enableCareerMP [pkgs.wget];
       environment =
         {
           BEAMMP_PORT = toString cfg.port;
@@ -166,6 +196,18 @@ in {
           else
             echo "WARNING: auth key file is empty or missing: ${cfg.authKeyFile}" >&2
           fi
+        ''}
+        ${lib.optionalString cfg.enableCareerMP ''
+          # Deploy CareerMP server resources
+          mkdir -p Resources/Server/CareerMP/config Resources/Server/CareerMP/versions
+          cp --no-preserve=mode,ownership ${careermp.serverFiles}/careerMP.lua Resources/Server/CareerMP/
+          cp --no-preserve=mode,ownership ${careermp.serverFiles}/versions/* Resources/Server/CareerMP/versions/ 2>/dev/null || true
+
+          # Deploy CareerMP client mod
+          cp --no-preserve=mode,ownership ${careermp.clientZip} Resources/Client/CareerMP.zip
+
+          # Write merged config (Nix-managed, autoUpdate/autoExit forced off)
+          cp --no-preserve=mode,ownership ${careermpConfigFile} Resources/Server/CareerMP/config/config.json
         ''}
       '';
       script = ''

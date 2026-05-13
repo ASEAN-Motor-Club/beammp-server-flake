@@ -143,6 +143,21 @@ with lib; let
       default = "200%";
       description = "CPU quota cap (200% = 2 full cores)";
     };
+    enableCareerMP = mkEnableOption "CareerMP (Career Mode multiplayer)";
+    careerMPVersion = mkOption {
+      type = types.str;
+      default = "v0.0.37";
+      description = "CareerMP version to install";
+    };
+    careerMPConfig = mkOption {
+      type = types.attrs;
+      default = {};
+      description = ''
+        CareerMP config overrides (merged with defaults).
+        Structure: { server = { ... }; client = { ... }; }
+        autoUpdate and autoExit are always forced to false.
+      '';
+    };
   };
 in {
   options = backendOptions;
