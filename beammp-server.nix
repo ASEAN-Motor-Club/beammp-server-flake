@@ -63,7 +63,7 @@ with lib; let
       then "true"
       else "false"
     }
-    IP = "0.0.0.0"
+    IP = "::"
     InformationPacket = true
     ResourceFolder = "Resources"
     ${cfg.extraConfig}
@@ -135,7 +135,11 @@ in {
         StateDirectory = cfg.stateDirectory;
         StateDirectoryMode = "770";
         WorkingDirectory = "/var/lib/${cfg.stateDirectory}";
-        EnvironmentFile = lib.mkIf (cfg.authKeyFile != null) cfg.authKeyFile;
+
+        # Allow IPv6 — the server binds to :: for dual-stack (IPv4+IPv6) support.
+        # This fixes the Boost.Asio bad_address_cast bug where the binary creates an
+        # IPv6 acceptor but the IPv4 bind (0.0.0.0) causes a family mismatch.
+        RestrictAddressFamilies = "AF_INET AF_INET6 AF_UNIX AF_NETLINK";
 
         # === Resource isolation (protect Motor Town) ===
         CPUAffinity = cfg.cpuAffinity;
@@ -151,9 +155,18 @@ in {
       preStart = ''
         mkdir -p Resources/Client Resources/Server
         cp --no-preserve=mode,ownership ${serverConfigFile} ServerConfig.toml
-        if [ -n "''${BEAMMP_AUTH_KEY:-}" ]; then
-          sed -i "s/AuthKey = \"\"/AuthKey = \"$BEAMMP_AUTH_KEY\"/" ServerConfig.toml
-        fi
+        ${lib.optionalString (cfg.authKeyFile != null) ''
+          if [ -s "${cfg.authKeyFile}" ]; then
+            # Secret may be raw key or KEY=value format (EnvironmentFile)
+            AUTH_KEY=$(sed -n 's/^BEAMMP_AUTH_KEY=//p' "${cfg.authKeyFile}")
+            if [ -z "$AUTH_KEY" ]; then
+              AUTH_KEY=$(tr -d '[:space:]' < "${cfg.authKeyFile}")
+            fi
+            sed -i "s/AuthKey = \"\"/AuthKey = \"$AUTH_KEY\"/" ServerConfig.toml
+          else
+            echo "WARNING: auth key file is empty or missing: ${cfg.authKeyFile}" >&2
+          fi
+        ''}
       '';
       script = ''
         exec ${lib.getExe beammp-server-bin}
