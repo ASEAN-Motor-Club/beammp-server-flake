@@ -12,6 +12,17 @@ with lib; let
     version = cfg.careerMPVersion;
   };
 
+  rlsCompatPatch = import ./rls-compat-patch.nix {
+    inherit pkgs lib;
+    version = cfg.rlsCompatPatchVersion;
+  };
+
+  rlsMods = import ./rls-mods.nix {
+    inherit pkgs lib careermp rlsCompatPatch;
+    rlsCompatReleaseVersion = cfg.rlsCompatPatchVersion;
+    enableRiverHighway = cfg.enableRiverHighway;
+  };
+
   userServerOverrides = cfg.careerMPConfig.server or {};
   userClientOverrides = cfg.careerMPConfig.client or {};
 
@@ -95,16 +106,36 @@ in {
   };
 
   config = mkIf cfg.enable {
-    assertions = lib.optionals cfg.enableCareerMP [
-      {
-        assertion = cfg.maxCars >= 100;
-        message = "CareerMP requires maxCars >= 100, but maxCars is ${toString cfg.maxCars}";
-      }
-      {
-        assertion = cfg.map == "/levels/west_coast_usa/info.json";
-        message = "CareerMP requires map = /levels/west_coast_usa/info.json, but map is ${cfg.map}";
-      }
-    ];
+    assertions =
+      lib.optionals cfg.enableCareerMP [
+        {
+          assertion = cfg.maxCars >= 100;
+          message = "CareerMP requires maxCars >= 100, but maxCars is ${toString cfg.maxCars}";
+        }
+        {
+          assertion =
+            cfg.map
+            == "/levels/west_coast_usa/info.json"
+            || (cfg.enableRiverHighway && cfg.map == "/levels/river_highway/info.json");
+          message = "CareerMP requires map = /levels/west_coast_usa/info.json (or /levels/river_highway/info.json with enableRiverHighway), but map is ${cfg.map}";
+        }
+      ]
+      ++ lib.optionals cfg.enableRLS [
+        {
+          assertion = cfg.enableCareerMP;
+          message = "enableRLS requires enableCareerMP to be true";
+        }
+      ]
+      ++ lib.optionals cfg.enableRiverHighway [
+        {
+          assertion = cfg.enableRLS;
+          message = "enableRiverHighway requires enableRLS to be true";
+        }
+        {
+          assertion = cfg.map == "/levels/river_highway/info.json";
+          message = "enableRiverHighway requires map = /levels/river_highway/info.json";
+        }
+      ];
 
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = [cfg.port];
@@ -175,7 +206,7 @@ in {
         CPUAffinity = cfg.cpuAffinity;
         CPUQuota = cfg.cpuQuota;
         MemoryMax = cfg.memoryMax;
-        MemoryHigh = "384M";
+        MemoryHigh = cfg.memoryHigh;
         MemorySwapMax = "0";
         OOMScoreAdjust = 500;
         Nice = "0";
@@ -200,11 +231,47 @@ in {
         ${lib.optionalString cfg.enableCareerMP ''
           # Deploy CareerMP server resources
           mkdir -p Resources/Server/CareerMP/config Resources/Server/CareerMP/versions
-          cp --no-preserve=mode,ownership ${careermp.serverFiles}/careerMP.lua Resources/Server/CareerMP/
+          ${
+            if cfg.enableRLS
+            then ''
+              # Deploy all server resources from the ready-to-use package
+              # Includes hotfixed careerMP.lua, CareerMPBanking, CareerMPPartySharedVehicles
+              cp --no-preserve=mode,ownership ${rlsMods.patchedServerLua} Resources/Server/CareerMP/careerMP.lua
+              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMP/zz_CareerMPBankingAppBridge.lua Resources/Server/CareerMP/
+              mkdir -p Resources/Server/CareerMPBanking
+              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPBanking/*.lua Resources/Server/CareerMPBanking/ 2>/dev/null || true
+              mkdir -p Resources/Server/CareerMPPartySharedVehicles/data
+              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPPartySharedVehicles/*.lua Resources/Server/CareerMPPartySharedVehicles/
+              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPPartySharedVehicles/data/* Resources/Server/CareerMPPartySharedVehicles/data/ 2>/dev/null || true
+            ''
+            else ''
+              cp --no-preserve=mode,ownership ${careermp.serverFiles}/careerMP.lua Resources/Server/CareerMP/
+            ''
+          }
           cp --no-preserve=mode,ownership ${careermp.serverFiles}/versions/* Resources/Server/CareerMP/versions/ 2>/dev/null || true
 
-          # Deploy CareerMP client mod
-          cp --no-preserve=mode,ownership ${careermp.clientZip} Resources/Client/CareerMP.zip
+          # Deploy CareerMP client mod (patched if RLS enabled)
+          ${
+            if cfg.enableRLS
+            then ''
+              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPZip} Resources/Client/CareerMP.zip
+              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPBankingZip} Resources/Client/CareerMPBanking.zip
+              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPPartySharedZip} Resources/Client/CareerMPPartySharedVehicles.zip
+              cp --no-preserve=mode,ownership ${rlsMods.patchedRLSZip} "Resources/Client/${rlsMods.patchedRLSZipName}"
+              cp --no-preserve=mode,ownership ${rlsMods.activeClientDir}/mods.json Resources/Client/mods.json
+            ''
+            else ''
+              cp --no-preserve=mode,ownership ${careermp.clientZip} Resources/Client/CareerMP.zip
+            ''
+          }
+
+          # Deploy River Highway mods if enabled
+          ${lib.optionalString (cfg.enableRiverHighway && rlsMods.riverHighwayDeltaZip != null) ''
+            cp --no-preserve=mode,ownership ${rlsMods.riverHighwayDeltaZip} "Resources/Client/${rlsMods.riverHighwayDeltaZipName}"
+          ''}
+          ${lib.optionalString (cfg.enableRiverHighway && rlsMods.riverHighwayMapZip != null) ''
+            cp --no-preserve=mode,ownership ${rlsMods.riverHighwayMapZip} Resources/Client/River_Highway_Rework_PHI.zip
+          ''}
 
           # Write merged config (Nix-managed, autoUpdate/autoExit forced off)
           cp --no-preserve=mode,ownership ${careermpConfigFile} Resources/Server/CareerMP/config/config.json

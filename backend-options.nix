@@ -138,6 +138,11 @@ with lib; let
       default = "512M";
       description = "Hard memory cap (systemd unit syntax)";
     };
+    memoryHigh = mkOption {
+      type = types.str;
+      default = "384M";
+      description = "Memory pressure watermark — kernel starts aggressive reclaim above this (systemd unit syntax)";
+    };
     cpuQuota = mkOption {
       type = types.str;
       default = "200%";
@@ -158,6 +163,13 @@ with lib; let
         autoUpdate and autoExit are always forced to false.
       '';
     };
+    enableRLS = mkEnableOption "RLS Career Overhaul (requires enableCareerMP)";
+    rlsCompatPatchVersion = mkOption {
+      type = types.str;
+      default = "v1.0.0-beta.16";
+      description = "RLS-CareerMP compatibility patch release version";
+    };
+    enableRiverHighway = mkEnableOption "River Highway map (requires enableRLS)";
   };
 in {
   options = backendOptions;
