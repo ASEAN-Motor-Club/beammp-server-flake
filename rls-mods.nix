@@ -39,6 +39,19 @@
     if enableRiverHighway && riverHighwayCore != null
     then "${riverHighwayCore}/Resources/Server"
     else "${readyToUse}/Resources/Server";
+
+  # When River Highway is enabled, the core zip's mods.json references the
+  # 1.6GB PHI map which can't be transferred via BeamMP's mod protocol.
+  # Build a filtered mods.json that excludes it — clients install PHI from
+  # the BeamNG mod repository instead.
+  filteredModsJson =
+    if enableRiverHighway && riverHighwayCore != null
+    then
+      pkgs.runCommand "mods-filtered.json" {nativeBuildInputs = [pkgs.jq];} ''
+        jq 'del(.["River_Highway_Rework_PHI.zip"])' \
+          ${activeClientDir}/mods.json > $out
+      ''
+    else "${activeClientDir}/mods.json";
 in {
   patchedCareerMPZip = "${activeClientDir}/CareerMP.zip";
   patchedCareerMPBankingZip = "${activeClientDir}/CareerMPBanking.zip";
@@ -51,6 +64,7 @@ in {
     if enableRiverHighway && riverHighwayCore != null
     then "rls_career_overhaul_2.6.5.2_careermp_compatible.zip"
     else "rls_career_overhaul_2.6.5.4_careermp_compatible.zip";
+  modsJson = filteredModsJson;
   patchedServerLua = "${activeServerDir}/CareerMP/careerMP.lua";
   activeServerDir = activeServerDir;
   activeClientDir = activeClientDir;

@@ -253,7 +253,7 @@ in {
               cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPBankingZip} Resources/Client/CareerMPBanking.zip
               cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPPartySharedZip} Resources/Client/CareerMPPartySharedVehicles.zip
               cp --no-preserve=mode,ownership ${rlsMods.patchedRLSZip} "Resources/Client/${rlsMods.patchedRLSZipName}"
-              cp --no-preserve=mode,ownership ${rlsMods.activeClientDir}/mods.json Resources/Client/mods.json
+              cp --no-preserve=mode,ownership ${rlsMods.modsJson} Resources/Client/mods.json
             ''
             else ''
               cp --no-preserve=mode,ownership ${careermp.clientZip} Resources/Client/CareerMP.zip
@@ -261,6 +261,9 @@ in {
           }
 
           # Deploy River Highway mods if enabled
+          # Note: The PHI map zip is deployed for server-side map loading.
+          # A filtered mods.json (without PHI) is written below so BeamMP doesn't
+          # try to push the 1.6GB file to clients — they install it from the BeamNG mod repo.
           ${lib.optionalString (cfg.enableRiverHighway && rlsMods.riverHighwayDeltaZip != null) ''
             cp --no-preserve=mode,ownership ${rlsMods.riverHighwayDeltaZip} "Resources/Client/${rlsMods.riverHighwayDeltaZipName}"
           ''}
