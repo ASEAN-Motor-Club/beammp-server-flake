@@ -1,8 +1,6 @@
 {
   pkgs,
   lib,
-  careermp,
-  rlsCompatPatch,
   rlsCompatReleaseVersion ? "v1.0.0-beta.16",
   enableRiverHighway ? false,
 }: let
@@ -41,18 +39,6 @@
     if enableRiverHighway && riverHighwayCore != null
     then "${riverHighwayCore}/Resources/Server"
     else "${readyToUse}/Resources/Server";
-
-  patchedCareerMPLua =
-    pkgs.runCommand "careermp-hotfixed-lua" {
-      nativeBuildInputs = [pkgs.python3];
-    } ''
-      mkdir -p $out
-      mkdir -p workdir/Resources/Server/CareerMP
-      cp ${careermp.serverFiles}/careerMP.lua workdir/Resources/Server/CareerMP/careerMP.lua
-      cp ${rlsCompatPatch.serverHotfixScript} apply_server_hotfix.py
-      python apply_server_hotfix.py --server-root workdir --no-backup
-      cp workdir/Resources/Server/CareerMP/careerMP.lua $out/careerMP.lua
-    '';
 in {
   patchedCareerMPZip = "${activeClientDir}/CareerMP.zip";
   patchedCareerMPBankingZip = "${activeClientDir}/CareerMPBanking.zip";
@@ -65,7 +51,7 @@ in {
     if enableRiverHighway && riverHighwayCore != null
     then "rls_career_overhaul_2.6.5.2_careermp_compatible.zip"
     else "rls_career_overhaul_2.6.5.4_careermp_compatible.zip";
-  patchedServerLua = "${patchedCareerMPLua}/careerMP.lua";
+  patchedServerLua = "${activeServerDir}/CareerMP/careerMP.lua";
   activeServerDir = activeServerDir;
   activeClientDir = activeClientDir;
   riverHighwayDeltaZip =

@@ -12,13 +12,8 @@ with lib; let
     version = cfg.careerMPVersion;
   };
 
-  rlsCompatPatch = import ./rls-compat-patch.nix {
-    inherit pkgs lib;
-    version = cfg.rlsCompatPatchVersion;
-  };
-
   rlsMods = import ./rls-mods.nix {
-    inherit pkgs lib careermp rlsCompatPatch;
+    inherit pkgs lib;
     rlsCompatReleaseVersion = cfg.rlsCompatPatchVersion;
     enableRiverHighway = cfg.enableRiverHighway;
   };
