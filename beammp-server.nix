@@ -44,7 +44,7 @@ with lib; let
     version = cfg.serverVersion;
     src = pkgs.fetchurl {
       url = "https://github.com/BeamMP/BeamMP-Server/releases/download/${cfg.serverVersion}/BeamMP-Server.debian.12.x86_64";
-      sha256 = "0dfri0xqrc9nyf3jdcrxppzb6jcdpfxbyj3l3lqwrni9xbig7a0c";
+      sha256 = "1wfnw8kxrnywpfl7149hl70si2hn3j5baplcwg8f3qibaiix894d";
     };
     nativeBuildInputs = [pkgs.autoPatchelfHook];
     buildInputs = [pkgs.lua5_3 pkgs.curl pkgs.stdenv.cc.cc.lib];
@@ -229,15 +229,13 @@ in {
           ${
             if cfg.enableRLS
             then ''
-              # Deploy all server resources from the ready-to-use package
-              # Includes hotfixed careerMP.lua, CareerMPBanking, CareerMPPartySharedVehicles
-              cp --no-preserve=mode,ownership ${rlsMods.patchedServerLua} Resources/Server/CareerMP/careerMP.lua
-              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMP/zz_CareerMPBankingAppBridge.lua Resources/Server/CareerMP/
-              mkdir -p Resources/Server/CareerMPBanking
-              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPBanking/*.lua Resources/Server/CareerMPBanking/ 2>/dev/null || true
-              mkdir -p Resources/Server/CareerMPPartySharedVehicles/data
-              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPPartySharedVehicles/*.lua Resources/Server/CareerMPPartySharedVehicles/
-              cp --no-preserve=mode,ownership ${rlsMods.activeServerDir}/CareerMPPartySharedVehicles/data/* Resources/Server/CareerMPPartySharedVehicles/data/ 2>/dev/null || true
+              # Deploy the complete ready-to-use SERVER tree from the RLS package.
+              # It carries the patched careerMP.lua, the Banking app bridge,
+              # CareerMPBanking and CareerMPPartySharedVehicles. Copy the whole
+              # tree instead of enumerating files: a new bundle release can add
+              # modules (e.g. beta.17/18 additions) and a missed file breaks
+              # client join at load.
+              cp --no-preserve=mode,ownership -r ${rlsMods.activeServerDir}/. Resources/Server/
             ''
             else ''
               cp --no-preserve=mode,ownership ${careermp.serverFiles}/careerMP.lua Resources/Server/CareerMP/
@@ -245,15 +243,16 @@ in {
           }
           cp --no-preserve=mode,ownership ${careermp.serverFiles}/versions/* Resources/Server/CareerMP/versions/ 2>/dev/null || true
 
-          # Deploy CareerMP client mod (patched if RLS enabled)
+          # Deploy CareerMP client mods (RLS bundle carries 6: CareerMP,
+          # CareerMPBanking, PartySharedVehicles, RaceTab, CareerMP-Tablet, RLS).
+          # mods.json lists every one of them by name + hash, so the whole Client
+          # dir must land in Resources/Client — enumerating files here silently
+          # desyncs mods.json and clients fail to fetch the missing mods.
           ${
             if cfg.enableRLS
             then ''
-              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPZip} Resources/Client/CareerMP.zip
-              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPBankingZip} Resources/Client/CareerMPBanking.zip
-              cp --no-preserve=mode,ownership ${rlsMods.patchedCareerMPPartySharedZip} Resources/Client/CareerMPPartySharedVehicles.zip
-              cp --no-preserve=mode,ownership ${rlsMods.patchedRLSZip} "Resources/Client/${rlsMods.patchedRLSZipName}"
-              cp --no-preserve=mode,ownership ${rlsMods.activeClientDir}/mods.json Resources/Client/mods.json
+              cp --no-preserve=mode,ownership -r ${rlsMods.activeClientDir}/. Resources/Client/
+              cp --no-preserve=mode,ownership ${rlsMods.modsJson} Resources/Client/mods.json
             ''
             else ''
               cp --no-preserve=mode,ownership ${careermp.clientZip} Resources/Client/CareerMP.zip

@@ -120,7 +120,7 @@ with lib; let
     };
     serverVersion = mkOption {
       type = types.str;
-      default = "v3.9.2";
+      default = "v3.9.3";
       description = "BeamMP-Server version to install";
     };
     discordWebhookEnvironmentFile = mkOption {
@@ -166,7 +166,7 @@ with lib; let
     enableRLS = mkEnableOption "RLS Career Overhaul (requires enableCareerMP)";
     rlsCompatPatchVersion = mkOption {
       type = types.str;
-      default = "v1.0.0-beta.16";
+      default = "v1.0.0-beta.19";
       description = "RLS-CareerMP compatibility patch release version";
     };
     enableRiverHighway = mkEnableOption "River Highway map (requires enableRLS)";
