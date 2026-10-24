@@ -1,12 +1,12 @@
 {
   pkgs,
   lib,
-  rlsCompatReleaseVersion ? "v1.0.0-beta.16",
+  rlsCompatReleaseVersion ? "v1.0.0-beta.19",
   enableRiverHighway ? false,
 }: let
   readyToUse = pkgs.fetchzip {
     url = "https://github.com/ChiarelloB/RLS-CareerMP-Compatibility-Patch---Online-Career-Mode/releases/download/${rlsCompatReleaseVersion}/rls-careermp-ready-to-use-${rlsCompatReleaseVersion}.zip";
-    hash = "sha256-2DMAXe0PNDylmTbybhWedOVjuuYmwWrj5mbrJAbt+vM=";
+    hash = "sha256-jBVAIVlRopKen9EDZ7UZhsgYFLkaNZUrr80E5osOyp0=";
     stripRoot = false;
   };
 
@@ -59,11 +59,11 @@ in {
   patchedRLSZip =
     if enableRiverHighway && riverHighwayCore != null
     then "${activeClientDir}/rls_career_overhaul_2.6.5.2_careermp_compatible.zip"
-    else "${activeClientDir}/rls_career_overhaul_2.6.5.4_careermp_compatible.zip";
+    else "${activeClientDir}/rls_career_overhaul_2.6.7_careermp_compatible.zip";
   patchedRLSZipName =
     if enableRiverHighway && riverHighwayCore != null
     then "rls_career_overhaul_2.6.5.2_careermp_compatible.zip"
-    else "rls_career_overhaul_2.6.5.4_careermp_compatible.zip";
+    else "rls_career_overhaul_2.6.7_careermp_compatible.zip";
   modsJson = filteredModsJson;
   patchedServerLua = "${activeServerDir}/CareerMP/careerMP.lua";
   activeServerDir = activeServerDir;
