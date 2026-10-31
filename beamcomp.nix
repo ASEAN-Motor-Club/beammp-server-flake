@@ -10,6 +10,9 @@ let
   src = pkgs.fetchzip {
     url = "https://github.com/ReneKnap/BeamComp/releases/download/${version}/BeamComp-${assetVersion}.zip";
     hash = "sha256-a2+TjbdLIJzkvhd7IY7Tw0V+YmaNQRQdFEu1vrn8rFo="; # v0.10.0
+    # The release zip has five top-level entries (README/COMMANDS/CHANGELOG/
+    # LICENSE/Resources), so fetchzip must not try to strip a single root.
+    stripRoot = false;
   };
 in {
   inherit src;
