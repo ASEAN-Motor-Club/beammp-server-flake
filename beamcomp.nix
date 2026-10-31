@@ -4,8 +4,11 @@
   version,
 }:
 let
+  # The release tag is "v0.10.0" but the asset drops the leading "v":
+  # BeamComp-0.10.0.zip. Getting this wrong fails at build time with a 404.
+  assetVersion = lib.removePrefix "v" version;
   src = pkgs.fetchzip {
-    url = "https://github.com/ReneKnap/BeamComp/releases/download/${version}/BeamComp-${version}.zip";
+    url = "https://github.com/ReneKnap/BeamComp/releases/download/${version}/BeamComp-${assetVersion}.zip";
     hash = "sha256-a2+TjbdLIJzkvhd7IY7Tw0V+YmaNQRQdFEu1vrn8rFo="; # v0.10.0
   };
 in {
