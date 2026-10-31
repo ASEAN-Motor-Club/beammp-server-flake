@@ -170,6 +170,12 @@ with lib; let
       description = "RLS-CareerMP compatibility patch release version";
     };
     enableRiverHighway = mkEnableOption "River Highway map (requires enableRLS)";
+    enableBeamComp = mkEnableOption "BeamComp (BeamNG time trials as BeamMP races)";
+    beamCompVersion = mkOption {
+      type = types.str;
+      default = "v0.10.0";
+      description = "BeamComp release tag to install";
+    };
   };
 in {
   options = backendOptions;

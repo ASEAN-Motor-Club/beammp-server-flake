@@ -18,6 +18,11 @@ with lib; let
     enableRiverHighway = cfg.enableRiverHighway;
   };
 
+  beamcomp = import ./beamcomp.nix {
+    inherit pkgs lib;
+    version = cfg.beamCompVersion;
+  };
+
   userServerOverrides = cfg.careerMPConfig.server or {};
   userClientOverrides = cfg.careerMPConfig.client or {};
 
@@ -129,6 +134,12 @@ in {
         {
           assertion = cfg.map == "/levels/river_highway/info.json";
           message = "enableRiverHighway requires map = /levels/river_highway/info.json";
+        }
+      ]
+      ++ lib.optionals cfg.enableBeamComp [
+        {
+          assertion = cfg.maxCars >= 64;
+          message = "BeamComp needs maxCars >= 64 (1 own car + ~40 race props + 16 AI), but maxCars is ${toString cfg.maxCars}";
         }
       ];
 
@@ -273,6 +284,20 @@ in {
 
           # Write merged config (Nix-managed, autoUpdate/autoExit forced off)
           cp --no-preserve=mode,ownership ${careermpConfigFile} Resources/Server/CareerMP/config/config.json
+        ''}
+        ${lib.optionalString cfg.enableBeamComp ''
+          # BeamComp: client mod BeamMP hands to players, plus the server-side
+          # racing plugin. config/grids/presets are club state and are seeded
+          # exactly once (-n): BeamComp's own update notes require them to
+          # survive updates and restarts.
+          mkdir -p Resources/Client Resources/Server/BeamComp
+          cp --no-preserve=mode,ownership ${beamcomp.clientZip} Resources/Client/BeamComp.zip
+          cp -n --no-preserve=mode,ownership ${beamcomp.serverDir}/*.lua Resources/Server/BeamComp/ 2>/dev/null || true
+          cp -n --no-preserve=mode,ownership ${beamcomp.serverDir}/COMMANDS.md ${beamcomp.serverDir}/README.md Resources/Server/BeamComp/ 2>/dev/null || true
+          ${lib.concatMapStrings (f: ''
+            cp -n --no-preserve=mode,ownership ${beamcomp.serverDir}/${f} Resources/Server/BeamComp/${f} 2>/dev/null || true
+          '') beamcomp.stateFiles}
+          chown -R beammp:beammp Resources/Server/BeamComp Resources/Client/BeamComp.zip 2>/dev/null || true
         ''}
       '';
       script = ''
