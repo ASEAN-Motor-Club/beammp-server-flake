@@ -47,6 +47,23 @@ with lib; let
       default = "/levels/gridmap_v2/info.json";
       description = "Default map path";
     };
+    rotationMaps = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [
+        "/levels/hirochi_raceway/info.json"
+        "/levels/italy/info.json"
+      ];
+      description = ''
+        Optional weekly map rotation. When non-empty this replaces `map`:
+        on every service start the level is picked from this list by whole
+        weeks since the Unix epoch, so the map advances once a week at the
+        first restart after the boundary (the daily restart timer is the
+        intended trigger), and a crash restart inside the same week always
+        lands on the same map — no state file to keep in sync.
+        Entries are full level paths, e.g. "/levels/italy/info.json".
+      '';
+    };
     isPrivate = mkOption {
       type = types.bool;
       default = true;

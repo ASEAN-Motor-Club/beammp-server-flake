@@ -120,6 +120,16 @@ in {
           message = "CareerMP requires map = /levels/west_coast_usa/info.json (or /levels/river_highway/info.json with enableRiverHighway), but map is ${cfg.map}";
         }
       ]
+      ++ lib.optionals (cfg.rotationMaps != []) [
+        {
+          assertion = !cfg.enableCareerMP;
+          message = "rotationMaps cannot be combined with enableCareerMP: career saves are bound to one level";
+        }
+        {
+          assertion = builtins.all (m: lib.hasPrefix "/levels/" m) cfg.rotationMaps;
+          message = "every rotationMaps entry must be a full level path like /levels/italy/info.json";
+        }
+      ]
       ++ lib.optionals cfg.enableRLS [
         {
           assertion = cfg.enableCareerMP;
@@ -222,6 +232,21 @@ in {
       preStart = ''
         mkdir -p Resources/Client Resources/Server
         cp --no-preserve=mode,ownership ${serverConfigFile} ServerConfig.toml
+        ${lib.optionalString (cfg.rotationMaps != []) ''
+          # Weekly map rotation (option rotationMaps). The map is a pure function
+          # of the current week, so a restart inside the same week cannot change
+          # it and no state has to persist; the change lands on the first start
+          # after the Monday boundary — in practice the daily restart timer.
+          # +259200 (3 days) shifts the epoch, which fell on a Thursday, so that
+          # slots turn over at Monday 00:00 UTC instead.
+          ROT_MAPS=(${lib.concatMapStringsSep " " (m: "'${m}'") cfg.rotationMaps})
+          ROT_COUNT=${toString (builtins.length cfg.rotationMaps)}
+          ROT_WEEK=$(( ($(date +%s) + 259200) / 604800 ))
+          ROT_IDX=$(( ROT_WEEK % ROT_COUNT ))
+          ROT_MAP="''${ROT_MAPS[$ROT_IDX]}"
+          sed -i "s|^Map = .*|Map = \"$ROT_MAP\"|" ServerConfig.toml
+          echo "map rotation: week $ROT_WEEK -> slot $((ROT_IDX + 1))/$ROT_COUNT ($ROT_MAP)" >&2
+        ''}
         ${lib.optionalString (cfg.authKeyFile != null) ''
           if [ -s "${cfg.authKeyFile}" ]; then
             # Secret may be raw key or KEY=value format (EnvironmentFile)
